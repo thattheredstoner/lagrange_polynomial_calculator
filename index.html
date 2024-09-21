@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lagrange Polynomial Grapher</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Lagrange Polynomial Grapher</h1>
+    </header>
+    <main class="container">
+        <section id="calculator">
+            <h2>Enter your data points</h2>
+            <form id="data-points">
+                <div class="data-points-container" id="data-points-container">
+                    <div class="data-point">
+                        <label for="x1">x1:</label>
+                        <input type="number" name="x" required>
+                        &nbsp;
+                        <label for="y1">y1:</label>
+                        <input type="number" name="y" required>
+                    </div>
+                    <div class="data-point">
+                        <label for="x2">x2:</label>
+                        <input type="number" name="x" required>
+                        &nbsp;
+                        <label for="y2">y2:</label>
+                        <input type="number" name="y" required>
+    
+                    </div>
+                </div>
+                <button type="button" id="add-point">Add another point</button>
+                <button type="submit">Calculate</button>
+            </form>
+        </section>
+        <section id="result">
+            <h2>Result</h2>
+            <canvas id="lagrangeChart" width="400" height="400"></canvas>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                let weights = [];
+                let xArray = [];
+                let yArray = [];
+                let k = 0;
+
+                const ctx = document.getElementById('lagrangeChart').getContext('2d');
+
+
+                const lagrangeChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [], // x-axis labels
+                        datasets: [{
+                            label: 'Lagrange Polynomial',
+                            data: [], // y-axis data
+                            borderColor: 'rgba(0, 0, 0, 0.4)',
+                            hoverBorderColor: 'rgba(5, 5, 5, 0.4)',
+                            borderWidth: 2,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                                hitRadius: 2
+                            }
+                        },
+                        interation: {
+                            mode: 'nearest',
+                            intersect: false
+                        },
+                        responsive: true,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom'
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                cornerRadius: 8,
+                                callbacks: {
+                                    title: function(context) {
+                                        return `(${context[0].label}, ${context[0].formattedValue})`;
+                                    },
+                                    label: function(context) {
+                                        return `x: ${context.label}, y: ${context.formattedValue}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                document.getElementById('add-point').addEventListener('click', function() {
+                    const pointsContainer = document.getElementById('data-points-container');
+                    const pointCount = pointsContainer.children.length + 1;
+                    const point = document.createElement('div');
+                    point.classList.add('data-point');
+                    point.innerHTML = `
+                        <label for="x${pointCount}">x${pointCount}:</label>
+                        <input type="number" name="x" required>
+                        &nbsp;
+                        <label for="y${pointCount}">y${pointCount}:</label>
+                        <input type="number" name="y" required>
+                        &nbsp;
+                        <button class="remove-point">Remove Point</button>
+                    `;
+                    pointsContainer.appendChild(point);
+                });
+
+                document.getElementById('data-points').addEventListener('click', function(event) {
+                    if (event.target.classList.contains('remove-point')) {
+                        event.target.parentElement.remove();
+                    }
+                });
+
+                document.getElementById('data-points').addEventListener('submit', function(event) {
+                    event.preventDefault();
+
+                    // Reset data
+                    weights = [];
+                    xArray = [];
+                    yArray = [];
+
+                    const allPoints = document.querySelectorAll('.data-point');
+                    k = allPoints.length;
+                    allPoints.forEach(point => {
+                        xArray.push(parseFloat(point.querySelector('input[name^="x"]').value));
+                        yArray.push(parseFloat(point.querySelector('input[name^="y"]').value));
+                    });
+                    for (let w, j = 0; j < k; j++) {
+                        w = 1;
+                        for (let i = 0; i < k; i++) if (i !== j) w *= xArray[j] - yArray[i];
+                        weights[j] = 1 / w;
+                    }
+
+                    // Update chart data
+                    const min = Math.min(...xArray);
+                    const max = Math.max(...xArray);
+                    const step = (max + min) / 500;
+                    lagrangeChart.data.labels = Array.from({length: 500}, (_, i) => i * step);
+                    lagrangeChart.data.datasets[0].data = lagrangeChart.data.labels.map(x => calculateLagrange(x));
+                    lagrangeChart.update();
+                });
+
+                function calculateLagrange(x) {
+                    let a = 0,
+                        b = 0,
+                        c = 0;
+
+                    for (let i = 0; i < k; i++) {
+                        if (x === xArray[i]) return yArray[i];
+                        a = weights[i] / (x - xArray[i]);
+                        b += a * yArray[i];
+                        c += a;
+                    }
+
+                    return b / c;
+                }
+            </script>
+        </section>
+    </main>
+</body>
+</html>
